@@ -1,1 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
+  <title>Kasto Studio · Vision Architect</title>
 
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600&family=La+Belle+Aurore&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Icons -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+  <!-- HTML2Canvas -->
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+  <!-- Interact.js -->
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+
+  <style>
+    :root {
+      /* Default Theme: Atelier (Light/Paper) */
+      --bg-body: #f5f5f4;
+      --bg-sidebar: #ffffff;
+      --bg-canvas: #fdfcfb;
+      --grid-line: #e5e5e5;
+      --text-main: #292524;
+      --text-muted: #a8a29e;
+      --border-color: #e7e5e4;
+      --accent: #bfa15f;
+      --photo-bg: #f2f2f0;
+      --photo-border: #e5e5e5;
+    }
+
+    /* THEME: NOIR (Dark Luxury) */
+    [data-theme="noir"] {
+      --bg-body: #0c0a09;
+      --bg-sidebar: #1c1917;
+      --bg-canvas: #121212;
+      --grid-line: #292524;
+      --text-main: #e7e5e4;
+      --text-muted: #57534e;
+      --border-color: #292524;
+      --photo-bg: #1c1917;
+      --photo-border: #44403c;
+    }
+
+    /* THEME: SILK (Soft/Dreamy) */
+    [data-theme="silk"] {
+      --bg-body: #fdf2f8;
+      --bg-sidebar: #fff1f2;
+      --bg-canvas: #fff5f5;
+      --grid-line: #fbcfe8;
+      --text-main: #881337;
+      --text-muted: #fda4af;
+      --border-color: #fecdd3;
+      --photo-bg: #fff0f5;
+      --photo-border: #fbcfe8;
+    }
+
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      overflow: hidden;
+      transition: background-color 0.4s ease, color 0.4s ease;
+    }
+
+    .lux-serif {
+      font-family: "Cormorant Garamond", serif;
+    }
+
+    .signature-font {
+      font-family: "La Belle Aurore", cursive;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* --- Layout --- */
+    #main-layout {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #sidebar {
+      width: 320px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      z-index: 50;
+      padding: 32px 24px;
+      overflow-y: auto;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+      transition: background-color 0.4s ease, border-color 0.4s ease;
+    }
+
+    #canvas-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px;
+      overflow-y: auto;
+      background-color: var(--bg-body);
+      /* Grid Pattern */
+      background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 40px 40px;
+      transition: background-color 0.4s ease;
+    }
+
+    #vision-board {
+      width: 100%;
+      max-width: 900px; /* Default A4-ish width */
+      min-height: 1200px;
+      background-color: var(--bg-canvas);
+      box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.15);
+      position: relative;
+      padding: 80px;
+      transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transform-origin: top center;
+      overflow: hidden;
+    }
+
+    /* Responsive Size Modes */
+    #vision-board.mode-mobile {
+      max-width: 450px;
+      min-height: 900px;
+      padding: 40px;
+    }
+
+    #vision-board.mode-landscape {
+      max-width: 1200px;
+      min-height: 800px;
+    }
+
+    /* --- Dynamic Grid System --- */
+    #dynamic-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-auto-rows: 220px;
+      gap: 20px;
+      position: relative;
+      z-index: 10;
+      margin-bottom: 40px;
+    }
+
+    /* Layout Adjustments for Mobile Mode */
+    #vision-board.mode-mobile #dynamic-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      grid-auto-rows: 180px;
+    }
+
+    #vision-board.mode-mobile .span-full {
+      grid-column: span 2;
+    }
+
+    #vision-board.mode-mobile .span-wide {
+      grid-column: span 2;
+    }
+
+    /* Photo Zone */
+    .photo-zone {
+      background-color: var(--photo-bg);
+      background-size: cover;
+      background-position: center;
+      transition: all 0.25s ease;
+      position: relative;
+      border: 1px solid var(--photo-border);
+      cursor: pointer;
+    }
+
+    .photo-zone:hover {
+      border-color: var(--text-muted);
+      box-shadow: inset 0 0 0 1px var(--text-muted);
+    }
+
+    .photo-zone.filled {
+      border: none;
+    }
+
+    .photo-zone-placeholder {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--text-muted);
+      pointer-events: none;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+    }
+
+    .photo-zone.filled .photo-zone-placeholder {
+      display: none;
+    }
+
+    /* Controls */
+    .zone-controls {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s ease-out;
+      pointer-events: auto;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(4px);
+      padding: 2px;
+      border-radius: 4px;
+      z-index: 20;
+    }
+
+    .photo-zone:hover .zone-controls {
+      opacity: 1;
+    }
+
+    .ctrl-btn {
+      width: 24px;
+      height: 24px;
+      color: #57534e;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .ctrl-btn:hover {
+      color: black;
+    }
+
+    /* Sizing Classes */
+    .span-wide {
+      grid-column: span 2;
+    }
+
+    .span-tall {
+      grid-row: span 2;
+    }
+
+    .span-full {
+      grid-column: span 3;
+      height: 350px;
+    }
+
+    /* --- Draggable Assets --- */
+    .draggable-item {
+      position: absolute;
+      touch-action: none;
+      user-select: none;
+      cursor: grab;
+      z-index: 30;
+      transition: box-shadow 0.15s ease, transform 0.1s ease;
+    }
+
+    .draggable-item:active {
+      cursor: grabbing;
+      transform: scale(1.02);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+    }
+
+    .asset-label {
+      background: var(--text-main);
+      color: var(--bg-canvas);
+      padding: 6px 14px;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+
+    .asset-tape {
+      width: 120px;
+      height: 26px;
+      background: rgba(220, 220, 220, 0.5);
+      border-left: 1px dashed rgba(0, 0, 0, 0.1);
+      border-right: 1px dashed rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(3px);
+      transform: rotate(-3deg);
+    }
+
+    .asset-gold {
+      width: 80px;
+      height: 80px;
+      background: radial-gradient(circle, #d4af37 0%, transparent 70%);
+      opacity: 0.7;
+      mix-blend-mode: multiply;
+      pointer-events: none;
+    }
+
+    .asset-card {
+      min-width: 200px;
+      background: var(--bg-canvas);
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* --- UI Components --- */
+    .sidebar-header {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      margin-top: 32px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .sidebar-header:first-of-type {
+      margin-top: 0;
+    }
+
+    .action-btn {
+      width: 100%;
+      padding: 14px;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border-radius: 10px;
+      transition: all 0.18s ease;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-btn::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        circle at top left,
+        rgba(0, 0, 0, 0.06),
+        transparent
+      );
+      opacity: 0;
+      transition: opacity 0.18s ease;
+    }
+
+    .action-btn:hover {
+      border-color: var(--text-muted);
+      background: rgba(250, 250, 249, 0.9);
+    }
+
+    .action-btn:hover::after {
+      opacity: 1;
+    }
+
+    .btn-icon {
+      width: 16px;
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .btn-label {
+      white-space: nowrap;
+    }
+
+    /* Visual Theme Buttons */
+    .theme-btn {
+      width: 100%;
+      height: 50px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      border-radius: 999px;
+    }
+
+    .theme-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+    }
+
+    .theme-atelier {
+      background: #fdfcfb;
+      color: #292524;
+    }
+
+    .theme-noir {
+      background: #0c0a09;
+      color: #e7e5e4;
+    }
+
+    .theme-silk {
+      background: linear-gradient(135deg, #fff1f2 0%, #fff5f5 100%);
+      color: #881337;
+    }
+
+    /* Size Toggles */
+    .size-toggle-group {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+    }
+
+    .size-btn {
+      flex: 1;
+      padding: 8px;
+      font-size: 9px;
+      text-transform: uppercase;
+      border: 1px solid var(--border-color);
+      color: #a8a29e;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 999px;
+      background: transparent;
+      transition: all 0.16s ease;
+    }
+
+    .size-btn.active {
+      background: var(--text-main);
+      color: var(--bg-canvas);
+      border-color: var(--text-main);
+    }
+
+    /* --- RITUAL MODE --- */
+    #ritual-overlay {
+      position: fixed;
+      inset: 0;
+      background: #0c0a09;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.7s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.ritual-active #ritual-overlay {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    body.ritual-active #sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.5s;
+    }
+
+    body.ritual-active #main-layout {
+      background: #0c0a09;
+    }
+
+    body.ritual-active #canvas-wrapper {
+      background: transparent;
+      background-image: none;
+      overflow: hidden;
+    }
+
+    body.ritual-active #vision-board {
+      transform: scale(0.9);
+      box-shadow: 0 0 100px rgba(255, 255, 255, 0.05);
+      border: 1px solid #292524;
+      filter: brightness(0.9);
+    }
+
+    .ritual-controls {
+      position: absolute;
+      bottom: 40px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 1s ease;
+    }
+
+    body.ritual-active .ritual-controls {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .breathing-text {
+      position: absolute;
+      top: 40px;
+      color: #78716c;
+      font-size: 10px;
+      letter-spacing: 0.5em;
+      text-transform: uppercase;
+      animation: breathe 8s infinite ease-in-out;
+    }
+
+    @keyframes breathe {
+      0%,
+      100% {
+        opacity: 0.3;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    /* --- MODALS --- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(3px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: white;
+      padding: 32px;
+      width: 320px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      border-radius: 18px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Processing overlay */
+    #download-overlay {
+      z-index: 300;
+    }
+
+    /* --- Mobile Layout Adjustments --- */
+    @media (max-width: 768px) {
+      body {
+        overflow: auto;
+      }
+
+      #main-layout {
+        flex-direction: column;
+        height: auto;
+      }
+
+      #sidebar {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 20px 16px;
+      }
+
+      #canvas-wrapper {
+        padding: 16px;
+      }
+
+      #vision-board {
+        padding: 32px;
+        max-width: 100%;
+        min-height: auto;
+      }
+
+      #vision-board.mode-mobile {
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+<body data-theme="atelier">
+  <!-- Ritual Overlay -->
+  <div id="ritual-overlay">
+    <div class="breathing-text" data-i18n-key="breathing">
+      VISUALIZE YOUR REALITY
+    </div>
+    <div class="ritual-controls">
+      <button
+        onclick="toggleRitualMode()"
+        class="text-white border border-white/20 px-6 py-2 text-[10px] uppercase tracking-widest hover:bg-white/10 transition rounded-full"
+        data-i18n-key="ritualReturn"
+      >
+        Return to Studio
+      </button>
+    </div>
+  </div>
+
+  <!-- Download Options Modal -->
+  <div id="download-modal" class="modal-overlay">
+    <div class="modal-card">
+      <h3
+        class="text-lg lux-serif italic text-stone-900 mb-2"
+        data-i18n-key="dlTitle"
+      >
+        Export Vision
+      </h3>
+      <p
+        class="text-[10px] uppercase tracking-widest text-stone-400 mb-6"
+        data-i18n-key="dlSubtitle"
+      >
+        Choose your format
+      </p>
+
+      <div class="flex flex-col gap-3">
+        <button
+          onclick="confirmDownload('mobile')"
+          class="w-full py-3 border border-stone-200 text-stone-600 text-[10px] font-bold uppercase tracking-widest hover:bg-stone-50 transition flex items-center justify-center gap-2 rounded-full"
+        >
+          <i class="fa-solid fa-mobile-screen"></i>
+          <span data-i18n-key="dlPhone">Phone Wallpaper</span>
+        </button>
+        <button
+          onclick="confirmDownload('tablet')"
+          class="w-full py-3 border border-stone-200 text-stone-600 text-[10px] font-bold uppercase tracking-widest hover:bg-stone-50 transition flex items-center justify-center gap-2 rounded-full"
+        >
+          <i class="fa-solid fa-tablet-screen-button"></i>
+          <span data-i18n-key="dlTablet">Tablet / Desktop</span>
+        </button>
+        <button
+          onclick="confirmDownload('print')"
+          class="w-full py-3 border border-stone-800 bg-stone-900 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-black transition flex items-center justify-center gap-2 rounded-full"
+        >
+          <i class="fa-solid fa-print"></i>
+          <span data-i18n-key="dlPrint">A4 Print</span>
+        </button>
+      </div>
+      <button
+        onclick="closeModal('download-modal')"
+        class="mt-4 text-[9px] text-stone-400 underline hover:text-stone-600"
+        data-i18n-key="cancel"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+
+  <!-- Reset Confirmation Modal -->
+  <div id="reset-modal" class="modal-overlay">
+    <div class="modal-card">
+      <h3
+        class="text-lg lux-serif italic text-stone-900 mb-2"
+        data-i18n-key="resetTitle"
+      >
+        Reset Studio?
+      </h3>
+      <p
+        class="text-[10px] uppercase tracking-widest text-stone-400 mb-6"
+        data-i18n-key="resetDesc"
+      >
+        This will remove all photos and items.
+      </p>
+
+      <div class="flex gap-3">
+        <button
+          onclick="closeModal('reset-modal')"
+          class="flex-1 py-3 border border-stone-200 text-stone-600 text-[10px] font-bold uppercase tracking-widest hover:bg-stone-50 rounded-full"
+          data-i18n-key="resetCancel"
+        >
+          Cancel
+        </button>
+        <button
+          onclick="executeReset()"
+          class="flex-1 py-3 bg-red-50 text-red-500 border border-red-100 text-[10px] font-bold uppercase tracking-widest hover:bg-red-100 rounded-full"
+          data-i18n-key="resetConfirm"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Processing Overlay -->
+  <div
+    id="download-overlay"
+    class="hidden fixed inset-0 flex items-center justify-center flex-col bg-white/95 backdrop-blur-sm"
+  >
+    <div
+      class="animate-spin w-8 h-8 border-2 border-stone-200 border-t-stone-800 rounded-full mb-3"
+    ></div>
+    <p
+      class="text-[10px] tracking-[0.2em] uppercase text-stone-500"
+      data-i18n-key="loading"
+    >
+      Creating High-Res Export...
+    </p>
+  </div>
+
+  <div id="main-layout">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="no-scrollbar">
+      <div
+        class="mb-8 text-center border-b border-stone-100 pb-6"
+        style="border-color: var(--border-color)"
+      >
+        <p
+          class="text-[10px] tracking-[0.35em] font-semibold uppercase"
+          style="color: var(--text-main)"
+        >
+          KASTO STUDIO
+        </p>
+        <span
+          class="text-[8px] uppercase tracking-[0.3em] block mt-2"
+          style="color: var(--text-muted)"
+        >
+          Vision Architect
+        </span>
+      </div>
+
+      <!-- LANGUAGE SWITCH -->
+      <p class="sidebar-header" data-i18n-key="language">Language</p>
+      <div class="flex gap-2 mb-6">
+        <button
+          onclick="setLanguage('en')"
+          class="size-btn active"
+          id="lang-en"
+        >
+          EN
+        </button>
+        <button
+          onclick="setLanguage('tr')"
+          class="size-btn"
+          id="lang-tr"
+        >
+          TR
+        </button>
+      </div>
+
+      <!-- 1. VIEW MODE -->
+      <p class="sidebar-header" data-i18n-key="canvasSize">
+        Canvas Size (Preview)
+      </p>
+      <div class="size-toggle-group">
+        <button onclick="setBoardMode('mobile', this)" class="size-btn">
+          Mobile
+        </button>
+        <button
+          onclick="setBoardMode('default', this)"
+          class="size-btn active"
+        >
+          Print (A4)
+        </button>
+      </div>
+
+      <!-- 2. ATMOSPHERE -->
+      <p class="sidebar-header" data-i18n-key="atmosphere">Atmosphere</p>
+      <div class="flex flex-col mb-4">
+        <button
+          onclick="setTheme('atelier')"
+          class="theme-btn theme-atelier"
+          data-i18n-key="themeAtelier"
+        >
+          Atelier
+        </button>
+        <button
+          onclick="setTheme('noir')"
+          class="theme-btn theme-noir"
+          data-i18n-key="themeNoir"
+        >
+          Noir
+        </button>
+        <button
+          onclick="setTheme('silk')"
+          class="theme-btn theme-silk"
+          data-i18n-key="themeSilk"
+        >
+          Silk
+        </button>
+      </div>
+
+      <!-- 3. STRUCTURE -->
+      <p class="sidebar-header" data-i18n-key="structure">Structure</p>
+      <button
+        onclick="addPhotoBlock()"
+        class="action-btn"
+        data-i18n-btn="addPhoto"
+      >
+        <span class="btn-icon"><i class="fa-thin fa-square-plus"></i></span>
+        <span class="btn-label">Add Photo Frame</span>
+      </button>
+      <p
+        class="text-[8px] text-stone-400 mb-6 italic pl-4 opacity-70"
+        data-i18n-key="tip"
+      >
+        Tip: Hover frames to resize or delete.
+      </p>
+
+      <button
+        onclick="requestReset()"
+        class="action-btn text-red-400 hover:text-red-500 hover:border-red-200"
+        data-i18n-btn="reset"
+      >
+        <span class="btn-icon"><i class="fa-thin fa-trash"></i></span>
+        <span class="btn-label">Reset Studio</span>
+      </button>
+
+      <!-- 4. ASSETS -->
+      <p class="sidebar-header" data-i18n-key="assets">Assets</p>
+      <button
+        onclick="addMotivationCard()"
+        class="action-btn"
+        data-i18n-btn="wisdom"
+      >
+        <span class="btn-icon"><i class="fa-thin fa-cards"></i></span>
+        <span class="btn-label">Wisdom Card</span>
+      </button>
+      <button
+        onclick="addLabel()"
+        class="action-btn"
+        data-i18n-btn="label"
+      >
+        <span class="btn-icon"><i class="fa-thin fa-tag"></i></span>
+        <span class="btn-label">Custom Label</span>
+      </button>
+      <button
+        onclick="addTape()"
+        class="action-btn"
+        data-i18n-btn="tape"
+      >
+        <span class="btn-icon"><i class="fa-thin fa-scroll"></i></span>
+        <span class="btn-label">Washi Tape</span>
+      </button>
+      <button
+        onclick="addGold()"
+        class="action-btn"
+        data-i18n-btn="gold"
+      >
+        <span class="btn-icon"><i class="fa-thin fa-sparkles"></i></span>
+        <span class="btn-label">Gold Accent</span>
+      </button>
+      <button
+        onclick="addManifesto()"
+        class="action-btn"
+        data-i18n-btn="textblock"
+      >
+        <span class="btn-icon"><i class="fa-thin fa-align-left"></i></span>
+        <span class="btn-label">Text Block</span>
+      </button>
+
+      <!-- 5. EXPERIENCE -->
+      <p class="sidebar-header" data-i18n-key="experience">Experience</p>
+      <button
+        onclick="toggleRitualMode()"
+        class="action-btn"
+        style="background: var(--text-main); color: var(--bg-canvas); border-color: var(--text-main)"
+        data-i18n-btn="ritual"
+      >
+        <span class="btn-icon"><i class="fa-thin fa-eye"></i></span>
+        <span class="btn-label">Enter Ritual Mode</span>
+      </button>
+
+      <div
+        class="mt-auto pt-6 border-t"
+        style="border-color: var(--border-color)"
+      >
+        <button
+          onclick="openModal('download-modal')"
+          class="w-full py-3 text-[10px] font-bold uppercase tracking-[0.2em] transition rounded-full"
+          style="color: var(--text-main); border: 1px solid var(--text-main)"
+          data-i18n-key="download"
+        >
+          Download / Print
+        </button>
+      </div>
+    </aside>
+
+    <!-- CANVAS -->
+    <main id="canvas-wrapper">
+      <div id="vision-board">
+        <!-- Header -->
+        <div class="flex justify-between items-start mb-12">
+          <div class="group w-full text-center">
+            <div
+              class="text-[9px] font-bold uppercase tracking-[0.3em] mb-3 flex items-center justify-center gap-2"
+              style="color: var(--text-muted)"
+            >
+              <div class="h-px w-6 bg-current opacity-30"></div>
+              <span id="header-label" data-i18n-key="header">
+                2026 MANIFESTATION
+              </span>
+              <div class="h-px w-6 bg-current opacity-30"></div>
+            </div>
+            <h2
+              class="outline-none editable lux-serif text-5xl italic leading-none"
+              contenteditable="true"
+              style="color: var(--text-main)"
+              data-i18n-key="title"
+            >
+              My Vision Board
+            </h2>
+          </div>
+        </div>
+
+        <!-- DYNAMIC GRID -->
+        <div id="dynamic-grid">
+          <!-- Default: 3 Blocks -->
+          <div class="photo-zone rounded-sm" onclick="triggerUpload(this)">
+            <div
+              class="photo-zone-placeholder"
+              data-i18n-placeholder="addPhoto"
+            >
+              ADD PHOTO
+            </div>
+            <input
+              type="file"
+              hidden
+              accept="image/*"
+              onchange="handleImage(this)"
+            />
+            <div class="zone-controls" onclick="event.stopPropagation()">
+              <div
+                class="ctrl-btn"
+                onclick="resizeBlock(this.parentElement.parentElement, 'wide')"
+                title="Wide"
+              >
+                <i class="fa-solid fa-arrows-left-right"></i>
+              </div>
+              <div
+                class="ctrl-btn"
+                onclick="resizeBlock(this.parentElement.parentElement, 'tall')"
+                title="Tall"
+              >
+                <i class="fa-solid fa-arrows-up-down"></i>
+              </div>
+              <div
+                class="ctrl-btn text-red-400"
+                onclick="removeBlock(this.parentElement.parentElement)"
+                title="Remove"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </div>
+            </div>
+          </div>
+          <div class="photo-zone rounded-sm" onclick="triggerUpload(this)">
+            <div
+              class="photo-zone-placeholder"
+              data-i18n-placeholder="addPhoto"
+            >
+              ADD PHOTO
+            </div>
+            <input
+              type="file"
+              hidden
+              accept="image/*"
+              onchange="handleImage(this)"
+            />
+            <div class="zone-controls" onclick="event.stopPropagation()">
+              <div
+                class="ctrl-btn"
+                onclick="resizeBlock(this.parentElement.parentElement, 'wide')"
+                title="Wide"
+              >
+                <i class="fa-solid fa-arrows-left-right"></i>
+              </div>
+              <div
+                class="ctrl-btn"
+                onclick="resizeBlock(this.parentElement.parentElement, 'tall')"
+                title="Tall"
+              >
+                <i class="fa-solid fa-arrows-up-down"></i>
+              </div>
+              <div
+                class="ctrl-btn text-red-400"
+                onclick="removeBlock(this.parentElement.parentElement)"
+                title="Remove"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </div>
+            </div>
+          </div>
+          <div class="photo-zone rounded-sm" onclick="triggerUpload(this)">
+            <div
+              class="photo-zone-placeholder"
+              data-i18n-placeholder="addPhoto"
+            >
+              ADD PHOTO
+            </div>
+            <input
+              type="file"
+              hidden
+              accept="image/*"
+              onchange="handleImage(this)"
+            />
+            <div class="zone-controls" onclick="event.stopPropagation()">
+              <div
+                class="ctrl-btn"
+                onclick="resizeBlock(this.parentElement.parentElement, 'wide')"
+                title="Wide"
+              >
+                <i class="fa-solid fa-arrows-left-right"></i>
+              </div>
+              <div
+                class="ctrl-btn"
+                onclick="resizeBlock(this.parentElement.parentElement, 'tall')"
+                title="Tall"
+              >
+                <i class="fa-solid fa-arrows-up-down"></i>
+              </div>
+              <div
+                class="ctrl-btn text-red-400"
+                onclick="removeBlock(this.parentElement.parentElement)"
+                title="Remove"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div
+          class="mt-20 border-t pt-8 flex justify-between items-end"
+          style="border-color: var(--border-color)"
+        >
+          <div>
+            <p
+              class="text-[8px] uppercase tracking-widest mb-2"
+              style="color: var(--text-muted)"
+              data-i18n-key="createdByLabel"
+            >
+              Created By
+            </p>
+            <div
+              class="outline-none editable signature-font text-2xl"
+              contenteditable="true"
+              style="color: var(--text-main)"
+            >
+              Your Name
+            </div>
+          </div>
+          <div class="text-right" style="color: var(--text-muted)">
+            <p class="text-[8px] uppercase tracking-widest">Kasto Studio</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- SCRIPT -->
+  <script>
+    const translations = {
+      en: {
+        language: "Language",
+        canvasSize: "Canvas Size (Preview)",
+        atmosphere: "Atmosphere",
+        structure: "Structure",
+        assets: "Assets",
+        experience: "Experience",
+        themeAtelier: "Atelier",
+        themeNoir: "Noir",
+        themeSilk: "Silk",
+        tip: "Tip: Hover frames to resize or delete.",
+        download: "Download / Print",
+        header: "2026 MANIFESTATION",
+        title: "My Vision Board",
+        createdByLabel: "Created By",
+        breathing: "VISUALIZE YOUR REALITY",
+        ritualReturn: "Return to Studio",
+        dlTitle: "Export Vision",
+        dlSubtitle: "Choose your format",
+        dlPhone: "Phone Wallpaper",
+        dlTablet: "Tablet / Desktop",
+        dlPrint: "A4 Print",
+        cancel: "Cancel",
+        resetTitle: "Reset Studio?",
+        resetDesc: "This will remove all photos and items.",
+        resetCancel: "Cancel",
+        resetConfirm: "Reset",
+        loading: "Creating High-Res Export...",
+        addPhoto: "Add Photo Frame",
+        wisdom: "Wisdom Card",
+        label: "Custom Label",
+        tape: "Washi Tape",
+        gold: "Gold Accent",
+        textblock: "Text Block",
+        ritual: "Enter Ritual Mode",
+        reset: "Reset Studio",
+        placeholderAddPhoto: "ADD PHOTO",
+        labelPrompt: "Label Text:",
+        labelDefault: "DREAM",
+        manifestoDefault: "I am designing a life I love...",
+        quotes: [
+          "Trust the timing.",
+          "Create your reality.",
+          "Quiet ambition.",
+          "Less but better.",
+          "Focus creates reality.",
+          "Energy flows where intention goes.",
+        ],
+      },
+      tr: {
+        language: "Dil",
+        canvasSize: "Kanvas Boyutu (Önizleme)",
+        atmosphere: "Atmosfer",
+        structure: "Yapı",
+        assets: "Ögeler",
+        experience: "Deneyim",
+        themeAtelier: "Atelier",
+        themeNoir: "Noir",
+        themeSilk: "Silk",
+        tip: "İpucu: Çerçevelerin üzerine gelerek boyutlandırabilir veya silebilirsiniz.",
+        download: "İndir / Yazdır",
+        header: "2026 NİYET PANOSU",
+        title: "Vizyon Panom",
+        createdByLabel: "Oluşturan",
+        breathing: "GERÇEKLİĞİNİ HAYAL ET",
+        ritualReturn: "Stüdyoya Dön",
+        dlTitle: "Vizyonu Dışa Aktar",
+        dlSubtitle: "Format seç",
+        dlPhone: "Telefon Duvar Kağıdı",
+        dlTablet: "Tablet / Masaüstü",
+        dlPrint: "A4 Baskı",
+        cancel: "Vazgeç",
+        resetTitle: "Stüdyoyu Sıfırla?",
+        resetDesc: "Tüm fotoğraf ve bileşenler kaldırılacak.",
+        resetCancel: "İptal",
+        resetConfirm: "Sıfırla",
+        loading: "Yüksek çözünürlüklü çıktı oluşturuluyor...",
+        addPhoto: "Fotoğraf Çerçevesi Ekle",
+        wisdom: "Bilgelik Kartı",
+        label: "Etiket",
+        tape: "Washi Bant",
+        gold: "Altın Efekt",
+        textblock: "Metin Bloğu",
+        ritual: "Ritüel Moduna Gir",
+        reset: "Stüdyoyu Sıfırla",
+        placeholderAddPhoto: "FOTO EKLE",
+        labelPrompt: "Etiket metni:",
+        labelDefault: "HAYAL",
+        manifestoDefault: "Aşık olduğum bir hayat tasarlıyorum...",
+        quotes: [
+          "Zamanlamaya güveniyorum.",
+          "Gerçekliğimi ben yaratıyorum.",
+          "Sessiz hırs, derin odak.",
+          "Daha az ama çok daha iyi.",
+          "Odağım, gerçeğimi şekillendirir.",
+          "Niyetimin olduğu yere enerjim akar.",
+        ],
+      },
+    };
+
+    let currentLang = "en";
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.documentElement.lang = lang;
+
+      document
+        .getElementById("lang-en")
+        .classList.toggle("active", lang === "en");
+      document
+        .getElementById("lang-tr")
+        .classList.toggle("active", lang === "tr");
+
+      applyTranslations();
+    }
+
+    function applyTranslations() {
+      const t = translations[currentLang];
+
+      const simpleKeys = [
+        "language",
+        "canvasSize",
+        "atmosphere",
+        "structure",
+        "assets",
+        "experience",
+        "download",
+        "header",
+        "title",
+        "createdByLabel",
+        "breathing",
+        "ritualReturn",
+        "dlTitle",
+        "dlSubtitle",
+        "dlPhone",
+        "dlTablet",
+        "dlPrint",
+        "cancel",
+        "resetTitle",
+        "resetDesc",
+        "resetCancel",
+        "resetConfirm",
+        "loading",
+      ];
+
+      simpleKeys.forEach((key) => {
+        document
+          .querySelectorAll(`[data-i18n-key="${key}"]`)
+          .forEach((el) => {
+            el.textContent = t[key];
+          });
+      });
+
+      const btnMap = [
+        "addPhoto",
+        "wisdom",
+        "label",
+        "tape",
+        "gold",
+        "textblock",
+        "ritual",
+        "reset",
+      ];
+
+      btnMap.forEach((key) => {
+        document
+          .querySelectorAll(`[data-i18n-btn="${key}"]`)
+          .forEach((btn) => {
+            const labelSpan = btn.querySelector(".btn-label");
+            if (labelSpan) labelSpan.textContent = t[key];
+          });
+      });
+
+      document
+        .querySelectorAll('[data-i18n-placeholder="addPhoto"]')
+        .forEach((el) => {
+          el.textContent = t.placeholderAddPhoto;
+        });
+    }
+
+    window.onload = function () {
+      initInteract();
+      applyTranslations();
+    };
+
+    function setTheme(themeName) {
+      document.body.setAttribute("data-theme", themeName);
+    }
+
+    function setBoardMode(mode, btn) {
+      const board = document.getElementById("vision-board");
+      board.classList.remove("mode-mobile", "mode-landscape");
+      if (mode === "mobile") board.classList.add("mode-mobile");
+
+      document
+        .querySelectorAll(".size-btn")
+        .forEach((b) => b.classList.remove("active"));
+      if (btn) btn.classList.add("active");
+    }
+
+    function requestReset() {
+      openModal("reset-modal");
+    }
+
+    function executeReset() {
+      closeModal("reset-modal");
+      const grid = document.getElementById("dynamic-grid");
+
+      grid.innerHTML = "";
+      document.querySelectorAll(".draggable-item").forEach((e) => e.remove());
+
+      createBlock(grid, "");
+      createBlock(grid, "");
+      createBlock(grid, "");
+
+      applyTranslations();
+    }
+
+    function createBlock(parent, sizeClass) {
+      const t = translations[currentLang];
+      const div = document.createElement("div");
+      div.className = `photo-zone rounded-sm ${sizeClass}`;
+      div.innerHTML = `
+        <div class="photo-zone-placeholder" data-i18n-placeholder="addPhoto">${t.placeholderAddPhoto}</div>
+        <input type="file" hidden accept="image/*" onchange="handleImage(this)">
+        <div class="zone-controls" onclick="event.stopPropagation()">
+          <div class="ctrl-btn" onclick="resizeBlock(this.parentElement.parentElement, 'wide')" title="Wide">
+            <i class="fa-solid fa-arrows-left-right"></i>
+          </div>
+          <div class="ctrl-btn" onclick="resizeBlock(this.parentElement.parentElement, 'tall')" title="Tall">
+            <i class="fa-solid fa-arrows-up-down"></i>
+          </div>
+          <div class="ctrl-btn text-red-400" onclick="removeBlock(this.parentElement.parentElement)" title="Remove">
+            <i class="fa-solid fa-xmark"></i>
+          </div>
+        </div>
+      `;
+      div.onclick = function () {
+        triggerUpload(this);
+      };
+      parent.appendChild(div);
+    }
+
+    function addPhotoBlock() {
+      createBlock(document.getElementById("dynamic-grid"), "");
+    }
+
+    function removeBlock(el) {
+      el.remove();
+    }
+
+    function resizeBlock(el, type) {
+      el.classList.remove("span-wide", "span-tall", "span-full");
+      if (type === "wide") el.classList.add("span-wide");
+      if (type === "tall") el.classList.add("span-tall");
+    }
+
+    function triggerUpload(el) {
+      const input = el.querySelector('input[type="file"]');
+      if (input) input.click();
+    }
+
+    function handleImage(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const parent = input.parentElement;
+          parent.style.backgroundImage = `url(${e.target.result})`;
+          parent.classList.add("filled");
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function initInteract() {
+      interact(".draggable-item")
+        .draggable({
+          listeners: {
+            move(event) {
+              const target = event.target;
+              const x =
+                (parseFloat(target.getAttribute("data-x")) || 0) + event.dx;
+              const y =
+                (parseFloat(target.getAttribute("data-y")) || 0) + event.dy;
+
+              target.style.transform = `translate(${x}px, ${y}px)`;
+              target.setAttribute("data-x", x);
+              target.setAttribute("data-y", y);
+            },
+          },
+          inertia: true,
+          modifiers: [
+            interact.modifiers.restrictRect({
+              restriction: "#vision-board",
+              endOnly: true,
+            }),
+          ],
+        })
+        .resizable({
+          edges: { left: true, right: true, bottom: true, top: true },
+          listeners: {
+            move(event) {
+              const target = event.target;
+              let x = parseFloat(target.getAttribute("data-x")) || 0;
+              let y = parseFloat(target.getAttribute("data-y")) || 0;
+
+              target.style.width = event.rect.width + "px";
+              target.style.height = event.rect.height + "px";
+
+              x += event.deltaRect.left;
+              y += event.deltaRect.top;
+
+              target.style.transform = `translate(${x}px, ${y}px)`;
+              target.setAttribute("data-x", x);
+              target.setAttribute("data-y", y);
+            },
+          },
+          modifiers: [
+            interact.modifiers.restrictSize({
+              min: { width: 60, height: 30 },
+              max: { width: 600, height: 600 },
+            }),
+            interact.modifiers.restrictEdges({
+              outer: "#vision-board",
+            }),
+          ],
+        })
+        .styleCursor(false);
+    }
+
+    function createDraggable(html, className, x, y) {
+      const el = document.createElement("div");
+      el.className = `draggable-item ${className}`;
+      el.innerHTML = html;
+      el.style.left = (x || 80) + "px";
+      el.style.top = (y || 260) + "px";
+      el.setAttribute("data-x", 0);
+      el.setAttribute("data-y", 0);
+      el.ondblclick = function () {
+        this.remove();
+      };
+      document.getElementById("vision-board").appendChild(el);
+    }
+
+    function addMotivationCard() {
+      const t = translations[currentLang];
+      const quotes = t.quotes || translations.en.quotes;
+      const text = quotes[Math.floor(Math.random() * quotes.length)];
+      const html = `<div class="asset-card lux-serif italic">“${text}”</div>`;
+      createDraggable(html, "", 120, 320);
+    }
+
+    function addLabel() {
+      const t = translations[currentLang];
+      const text = prompt(t.labelPrompt, t.labelDefault);
+      if (text) {
+        const html = `<div class="asset-label">${text}</div>`;
+        createDraggable(html, "", 100, 300);
+      }
+    }
+
+    function addTape() {
+      const html = '<div class="asset-tape"></div>';
+      createDraggable(html, "", 140, 340);
+    }
+
+    function addGold() {
+      const html = '<div class="asset-gold"></div>';
+      createDraggable(html, "", 200, 380);
+    }
+
+    function addManifesto() {
+      const t = translations[currentLang];
+      const html = `<div contenteditable="true" class="outline-none lux-serif text-lg italic text-left w-64" style="color: var(--text-main);">${t.manifestoDefault}</div>`;
+      createDraggable(html, "", 160, 360);
+    }
+
+    function toggleRitualMode() {
+      document.body.classList.toggle("ritual-active");
+    }
+
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add("active");
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove("active");
+    }
+
+    function confirmDownload(format) {
+      closeModal("download-modal");
+      const element = document.getElementById("vision-board");
+      const overlay = document.getElementById("download-overlay");
+
+      const originalMaxWidth = element.style.maxWidth;
+      const originalClasses = element.className;
+
+      if (format === "mobile") {
+        element.classList.add("mode-mobile");
+        element.style.maxWidth = "450px";
+      } else if (format === "print") {
+        element.classList.remove("mode-mobile");
+        element.style.maxWidth = "900px";
+      } else {
+        element.classList.remove("mode-mobile");
+        element.style.maxWidth = "900px";
+      }
+
+      overlay.classList.remove("hidden");
+      window.scrollTo(0, 0);
+
+      setTimeout(() => {
+        html2canvas(element, {
+          scale: 3,
+          useCORS: true,
+          backgroundColor: getComputedStyle(element).backgroundColor,
+        }).then((canvas) => {
+          const link = document.createElement("a");
+          link.download = `Kasto-Vision-${format}-${Date.now()}.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+
+          element.style.maxWidth = originalMaxWidth;
+          element.className = originalClasses;
+          overlay.classList.add("hidden");
+        });
+      }, 600);
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" || event.key === "Esc") {
+        closeModal("download-modal");
+        closeModal("reset-modal");
+        if (document.body.classList.contains("ritual-active")) {
+          toggleRitualMode();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
